@@ -18,7 +18,7 @@ public class Control : MonoBehaviour {
 
 	private string mode = "none";
 	private bool hasRebounded; //Has rebounded off another stone?
-	//private bool 
+	private bool clearedFarHog = false;
 	private GameObject stone;
 	private Rigidbody physics;
 	private Collider collider;
@@ -68,7 +68,7 @@ public class Control : MonoBehaviour {
 			physics.velocity = Quaternion.Euler(physics.angularVelocity*curlMul *Mathf.Rad2Deg) * physics.velocity;
 			if(physics.velocity==Vector3.zero)
 			{
-				if(/*isXollidingWithFarHogBox && */!hasRebounded)
+				if(!clearedFarHog && !hasRebounded)//If hasn't cleared far hog AND has not rebounded off another stone
 					HogStone();
 				else
 					mode="next";
@@ -81,12 +81,18 @@ public class Control : MonoBehaviour {
 		if(mode=="throw" && other.tag=="Near Hog")
 		{
 			HogStone();
+		}else if(other.tag=="Far Hog")
+		{Debug.Log("enter far");
+			clearedFarHog = false;
 		}
 	}
 
 	public void StoneTriggerExit(Collider other)
 	{
-		//TODO: maybe far hog tracking
+		if(other.tag=="Far Hog")
+		{Debug.Log("exit far");
+			clearedFarHog = true;
+		}
 	}
 
 	void HogStone()
