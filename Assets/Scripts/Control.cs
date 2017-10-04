@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class Control : MonoBehaviour {
 
+	public GameManager manager;
 	public Camera camera;
 	public Transform cameraPivot;
 	public GameObject sPrefab;
@@ -30,7 +31,7 @@ public class Control : MonoBehaviour {
 	{
 		//sPrefab = (GameObject)Resources.Load("Prefabs/Stone", typeof(GameObject));
 		//Debug.Log(sPrefab);
-		beginThrow();//TODO: remove when game is structured
+		//beginThrow();//TODO: remove when game is structured
 	}
 
 	void Update ()
