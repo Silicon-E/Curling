@@ -28,7 +28,7 @@ public class GameManager : MonoBehaviour {
 
 	public void StoneStopped(GameObject stone)
 	{
-		(player ?stones1 :stones2)--;
+		//(player ?stones1 :stones2)--;TODO this commented to silence compile error
 
 		if(stones1==0 && stones2==0)
 		{

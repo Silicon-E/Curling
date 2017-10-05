@@ -5,7 +5,19 @@ using UnityEngine.UI;
 
 public class Control : MonoBehaviour {
 
-	public GameManager manager;
+	public Control control;
+	public Text p1Turn;
+	public Text p2Turn;
+	private Text dispBanner;//Currently displayed banner
+	private int stones1 = 3;//TODO: wire stone count to... something
+	private int stones2 = 3;
+	private int score1;
+	private int score2;
+	private float bannerCool = 0f;//Banner cooldown, in seconds
+	private bool player = true;//true=P1, false=P2
+	public int ends = 1; //How many ends to play
+
+	//public GameManager manager;
 	public Camera camera;
 	public Transform cameraPivot;
 	public GameObject sPrefab;
@@ -29,19 +41,47 @@ public class Control : MonoBehaviour {
 
 	void Start ()
 	{
+		DisplayBanner(p1Turn,1f);
+		mode = "next";
 		//sPrefab = (GameObject)Resources.Load("Prefabs/Stone", typeof(GameObject));
 		//Debug.Log(sPrefab);
 		//beginThrow();//TODO: remove when game is structured
 	}
 
+	void DisplayBanner(Text b, float t)
+	{
+		dispBanner = b;
+		bannerCool = t;
+
+		dispBanner.enabled = true;
+		StartCoroutine("BannerCool");
+	}
+
+	IEnumerator BannerCool()
+	{
+		while(bannerCool>0)
+		{
+			bannerCool -= Time.deltaTime;
+			Debug.Log("UPD "+bannerCool);
+			if(bannerCool>0)
+				yield return null;
+		}
+		Debug.Log("STOPED");
+		dispBanner.enabled = false;
+		StopCoroutine("BannerCool");
+	}
+
 	void Update ()
 	{
-		cameraPivot.position = stone.transform.position;
+		if(stone)
+			cameraPivot.position = stone.transform.position;
 	}
 
 	void FixedUpdate ()
 	{
-		if(mode=="launch")
+		if(bannerCool<0f)
+			bannerCool = 0f;
+		if(mode=="launch" && bannerCool==0)
 		{
 			launch.x += Input.GetAxis("Mouse X")*launchSens;
 			launch.z += Input.GetAxis("Mouse Y")*launchSens;
@@ -62,6 +102,7 @@ public class Control : MonoBehaviour {
 			if(Input.GetMouseButtonDown(0))
 			{
 				physics.AddTorque(0f, turn, 0f, ForceMode.Impulse);
+				collider.material.dynamicFriction = friction;
 				mode="watch";
 			}
 		}else if(mode=="watch")
@@ -69,12 +110,41 @@ public class Control : MonoBehaviour {
 			physics.velocity = Quaternion.Euler(physics.angularVelocity*curlMul *Mathf.Rad2Deg) * physics.velocity;
 			if(physics.velocity==Vector3.zero)
 			{
+				//(player ?stones1 :stones2)--;
 				if(!clearedFarHog && !hasRebounded)//If hasn't cleared far hog AND has not rebounded off another stone
 					HogStone();
 				else
-					mode="next";
+					StoneStopped();
+			}
+		}else if(mode=="hogged" && bannerCool==0)
+		{
+			GameObject.Destroy(stone);
+			StoneStopped();
+		}else if(mode=="next" && bannerCool==0)
+		{
+			mode="launch";
+			beginThrow();
+		}
+	}
+
+	void StoneStopped()
+	{
+		if(player) stones1--;
+		else stones2--;
+
+		mode="next";
+		player = !player;
+
+		if(stones1==0 && stones2==0)
+		{
+			//TODO: tally the end
+			ends--;
+			if(ends==0)
+			{
+				//TODO: game over, who won?
 			}
 		}
+		DisplayBanner(player ?p1Turn :p2Turn,1);
 	}
 
 	public void StoneTriggerEnter(Collider other)
@@ -98,11 +168,12 @@ public class Control : MonoBehaviour {
 
 	void HogStone()
 	{
+		DisplayBanner(hogged,1f);
 		collider.material.dynamicFriction = friction;
 		foreach(Collider c in stone.GetComponents<Collider>())//Disable colliders
 			c.enabled= false;
 		mode="hogged";
-		hogged.enabled=true;
+		//hogged.enabled=true;
 	}
 
 	public void StoneCollisionEnter(Collider other)
