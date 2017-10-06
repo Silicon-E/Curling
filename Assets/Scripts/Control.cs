@@ -26,6 +26,9 @@ public class Control : MonoBehaviour {
 	public float turnSens;
 	public float friction;
 	public float curlMul;
+	public Vector2 launchMax;
+	public Vector2 launchMin;
+	public float turnMax;
 
 	public Text hogged;
 
@@ -37,10 +40,14 @@ public class Control : MonoBehaviour {
 	private Collider collider;
 	private Vector3 launch;
 	private float turn;
+	public bool cursorEngaged = true;
 
 
 	void Start ()
 	{
+		Cursor.lockState = CursorLockMode.Locked;
+		Cursor.visible = false;
+
 		DisplayBanner(p1Turn,1f);
 		mode = "next";
 		//sPrefab = (GameObject)Resources.Load("Prefabs/Stone", typeof(GameObject));
@@ -75,6 +82,18 @@ public class Control : MonoBehaviour {
 	{
 		if(stone)
 			cameraPivot.position = stone.transform.position;
+
+		if(Input.GetMouseButtonUp(0))
+		{
+			Cursor.lockState = CursorLockMode.Locked;
+			Cursor.visible = false;
+			cursorEngaged = true;
+		}else if(Input.GetKeyDown(KeyCode.Escape))
+		{
+			Cursor.lockState = CursorLockMode.None;
+			Cursor.visible = true;
+			cursorEngaged = false;
+		}
 	}
 
 	void FixedUpdate ()
@@ -83,31 +102,39 @@ public class Control : MonoBehaviour {
 			bannerCool = 0f;
 		if(mode=="launch" && bannerCool==0)
 		{
-			launch.x += Input.GetAxis("Mouse X")*launchSens;
-			launch.z += Input.GetAxis("Mouse Y")*launchSens;
-			launch.x = Mathf.Clamp(launch.x, -1f, 1f);
-			launch.z = Mathf.Clamp(launch.z, 0, 4f);
-			Debug.DrawRay(stone.transform.position, launch, Color.red);
-			//launch = launch.normalized*(launch.magnitude+Input.GetAxis("Mouse Y")*launchSensZ);
-			if(Input.GetMouseButtonDown(0))
+			if(cursorEngaged)
 			{
-				physics.AddForce(launch, ForceMode.Impulse);
-				mode="throw";
+				launch.x += Input.GetAxis("Mouse X")*launchSens;
+				launch.z += Input.GetAxis("Mouse Y")*launchSens;
+				launch.x = Mathf.Clamp(launch.x, launchMin.x, launchMax.x);
+				launch.z = Mathf.Clamp(launch.z, launchMin.y, launchMax.y);
+
+				//launch = launch.normalized*(launch.magnitude+Input.GetAxis("Mouse Y")*launchSensZ);
+				if(Input.GetMouseButtonDown(0))
+				{
+					physics.AddForce(launch, ForceMode.Impulse);
+					mode="throw";
+				}
 			}
+			Debug.DrawRay(stone.transform.position+Vector3.up, launch, Color.red);
 		}else if(mode=="throw")
 		{
-			turn += Input.GetAxis("Mouse X")*turnSens;
-			turn = Mathf.Clamp(turn, -1f, 1f);
-			Debug.DrawRay(stone.transform.position, new Vector3(turn/1f, 0f, 0f), Color.red);
-			if(Input.GetMouseButtonDown(0))
+			if(cursorEngaged)
 			{
-				physics.AddTorque(0f, turn, 0f, ForceMode.Impulse);
-				collider.material.dynamicFriction = friction;
-				mode="watch";
+				turn += Input.GetAxis("Mouse X")*turnSens;
+				turn = Mathf.Clamp(turn, -turnMax, turnMax);
+
+				if(Input.GetMouseButtonDown(0))
+				{
+					physics.AddTorque(0f, turn, 0f, ForceMode.Impulse);
+					collider.material.dynamicFriction = friction;
+					mode="watch";
+				}
 			}
+			Debug.DrawRay(stone.transform.position+Vector3.up, new Vector3(turn/1f, 0f, 0f), Color.red);
 		}else if(mode=="watch")
-		{
-			physics.velocity = Quaternion.Euler(physics.angularVelocity*curlMul *Mathf.Rad2Deg) * physics.velocity;
+		{Debug.Log(Mathf.Pow(physics.velocity.magnitude/launch.magnitude-1,8));
+			physics.velocity = Quaternion.Euler(physics.angularVelocity*curlMul *Mathf.Rad2Deg *Mathf.Pow(physics.velocity.magnitude/launch.magnitude-1,8)) * physics.velocity;//curling*= (x-1)^8
 			if(physics.velocity==Vector3.zero)
 			{
 				//(player ?stones1 :stones2)--;
@@ -193,8 +220,8 @@ public class Control : MonoBehaviour {
 
 		hasRebounded = false;
 		//camera.transform.parent = stone.transform;
-		Cursor.lockState = CursorLockMode.Locked;
-		Cursor.visible = false;
+		//Cursor.lockState = CursorLockMode.Locked;
+		//Cursor.visible = false;
 		launch = new Vector3(0f,0f,1f);
 
 		mode = "launch";
